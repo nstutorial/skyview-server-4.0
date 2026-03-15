@@ -1,20 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Routine = require('../models/Routine');
-const auth = require('../middleware/auth');
 
-// POST /api/routines/save-routine
-router.post('/save-routine', auth, async (req, res) => {
+// POST /api/routine
+router.post('/save-routine', async (req, res) => {
+  const { class: className, day, periods } = req.body;
+
   try {
-    const { class: className, day, periods } = req.body;
-
-    // Validation
-    if (!className || !day || !periods) {
-      return res.status(400).json({ 
-        message: 'Missing required fields: class, day, periods' 
-      });
-    }
-
     // Find routine for the class
     let routine = await Routine.findOne({ class: className });
 
@@ -38,29 +30,37 @@ router.post('/save-routine', auth, async (req, res) => {
     }
 
     await routine.save();
-    res.status(200).json({ 
-      message: 'Routine saved/updated successfully', 
-      routine 
-    });
+    res.status(200).json({ message: 'Routine saved/updated', routine });
 
   } catch (err) {
-    console.error('Error saving routine:', err);
-    res.status(500).json({ 
-      error: 'Server error saving routine',
-      message: err.message 
-    });
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
+// router.get('/:day', async (req, res) => {
+//   try {
+//     const day = req.params.day;
+//     const routine = await Routine.find({ day });
+//     if (routine) {
+//       res.json(routine);
+//     } else {
+//       res.status(404).json({ message: "Routine not found" });
+//     }
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+// Assuming this is mounted under something like /api/routines
+// routes/routineRoutes.js
+
 // GET /api/routines/get-routine?day=Monday
-router.get('/get-routine', auth, async (req, res) => {
+router.get('/get-routine', async (req, res) => {
   try {
     const { day: dayName } = req.query;
 
     if (!dayName) {
-      return res.status(400).json({ 
-        message: "'day' query parameter is required." 
-      });
+      return res.status(400).json({ message: "'day' query parameter is required." });
     }
 
     // Fetch all routine documents (each one is per class)
@@ -79,20 +79,12 @@ router.get('/get-routine', auth, async (req, res) => {
         }
         return null;
       })
-      .filter(Boolean); // Remove nulls
+      .filter(Boolean); // Remove nulls (i.e., classes with no schedule for that day)
 
-    // Response format: { day, routines }
-    res.json({ 
-      day: dayName, 
-      routines: routinesForDay 
-    });
-
+    res.json({ day: dayName, routines: routinesForDay });
   } catch (err) {
     console.error("Error fetching routines:", err);
-    res.status(500).json({ 
-      error: 'Server error fetching routines',
-      message: err.message 
-    });
+    res.status(500).json({ error: err.message });
   }
 });
 
