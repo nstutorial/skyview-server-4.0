@@ -5,9 +5,16 @@ const auth = require('../middleware/auth');
 
 // POST /api/routines/save-routine
 router.post('/save-routine', auth, async (req, res) => {
-  const { class: className, day, periods } = req.body;
-
   try {
+    const { class: className, day, periods } = req.body;
+
+    // Validation
+    if (!className || !day || !periods) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: class, day, periods' 
+      });
+    }
+
     // Find routine for the class
     let routine = await Routine.findOne({ class: className });
 
@@ -31,11 +38,17 @@ router.post('/save-routine', auth, async (req, res) => {
     }
 
     await routine.save();
-    res.status(200).json({ message: 'Routine saved/updated', routine });
+    res.status(200).json({ 
+      message: 'Routine saved/updated successfully', 
+      routine 
+    });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error saving routine:', err);
+    res.status(500).json({ 
+      error: 'Server error saving routine',
+      message: err.message 
+    });
   }
 });
 
@@ -45,7 +58,9 @@ router.get('/get-routine', auth, async (req, res) => {
     const { day: dayName } = req.query;
 
     if (!dayName) {
-      return res.status(400).json({ message: "'day' query parameter is required." });
+      return res.status(400).json({ 
+        message: "'day' query parameter is required." 
+      });
     }
 
     // Fetch all routine documents (each one is per class)
@@ -64,16 +79,20 @@ router.get('/get-routine', auth, async (req, res) => {
         }
         return null;
       })
-      .filter(Boolean); // Remove nulls (i.e., classes with no schedule for that day)
+      .filter(Boolean); // Remove nulls
 
-    // Correct response format matching client expectations
+    // Response format: { day, routines }
     res.json({ 
       day: dayName, 
       routines: routinesForDay 
     });
+
   } catch (err) {
     console.error("Error fetching routines:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ 
+      error: 'Server error fetching routines',
+      message: err.message 
+    });
   }
 });
 
