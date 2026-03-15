@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Routine = require('../models/Routine');
+const auth = require('../middleware/auth');
 
-// POST /api/routine
-router.post('/save-routine', async (req, res) => {
+// POST /api/routines/save-routine
+router.post('/save-routine', auth, async (req, res) => {
   const { class: className, day, periods } = req.body;
 
   try {
@@ -38,24 +39,8 @@ router.post('/save-routine', async (req, res) => {
   }
 });
 
-// router.get('/:day', async (req, res) => {
-//   try {
-//     const day = req.params.day;
-//     const routine = await Routine.find({ day });
-//     if (routine) {
-//       res.json(routine);
-//     } else {
-//       res.status(404).json({ message: "Routine not found" });
-//     }
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
-// Assuming this is mounted under something like /api/routines
-// routes/routineRoutes.js
-
 // GET /api/routines/get-routine?day=Monday
-router.get('/get-routine', async (req, res) => {
+router.get('/get-routine', auth, async (req, res) => {
   try {
     const { day: dayName } = req.query;
 
@@ -81,7 +66,11 @@ router.get('/get-routine', async (req, res) => {
       })
       .filter(Boolean); // Remove nulls (i.e., classes with no schedule for that day)
 
-    res.json({ day: dayName, routines: routinesForDay });
+    // Correct response format matching client expectations
+    res.json({ 
+      day: dayName, 
+      routines: routinesForDay 
+    });
   } catch (err) {
     console.error("Error fetching routines:", err);
     res.status(500).json({ error: err.message });
