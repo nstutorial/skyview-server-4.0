@@ -12,20 +12,38 @@ router.get('/config/:class/:section/:academicYear', auth, async (req, res) => {
             academicYear: req.params.academicYear
         });
 
+        // Default configuration structure
+        const defaultConfig = {
+            pt1: { maxMarksWritten: 80, maxMarksOral: 20 },
+            hy: { maxMarksWritten: 80, maxMarksOral: 20 },
+            pt2: { maxMarksWritten: 80, maxMarksOral: 20 },
+            final: { maxMarksWritten: 80, maxMarksOral: 20 }
+        };
+
         if (!config) {
             // Return default configuration if none exists
-            const defaultConfig = {
-                examConfigs: [
-                    { examType: 'pt1', maxMarksWritten: 80, maxMarksOral: 20 },
-                    { examType: 'hy', maxMarksWritten: 80, maxMarksOral: 20 },
-                    { examType: 'pt2', maxMarksWritten: 80, maxMarksOral: 20 },
-                    { examType: 'final', maxMarksWritten: 80, maxMarksOral: 20 }
-                ]
-            };
             return res.json(defaultConfig);
         }
 
-        res.json(config);
+        // Convert array format to object format for client compatibility
+        const objectConfig = {
+            pt1: { maxMarksWritten: 80, maxMarksOral: 20 },
+            hy: { maxMarksWritten: 80, maxMarksOral: 20 },
+            pt2: { maxMarksWritten: 80, maxMarksOral: 20 },
+            final: { maxMarksWritten: 80, maxMarksOral: 20 }
+        };
+
+        // If we have examConfigs array, convert it to object format
+        if (config.examConfigs && Array.isArray(config.examConfigs)) {
+            config.examConfigs.forEach(examConfig => {
+                objectConfig[examConfig.examType] = {
+                    maxMarksWritten: examConfig.maxMarksWritten,
+                    maxMarksOral: examConfig.maxMarksOral
+                };
+            });
+        }
+
+        res.json(objectConfig);
     } catch (error) {
         console.error('Error fetching exam config:', error);
         res.status(500).json({ message: error.message });
@@ -37,7 +55,7 @@ router.post('/config', auth, async (req, res) => {
     try {
         const { class: className, section, academicYear, config } = req.body;
 
-        // Convert config object to array format
+        // Convert config object to array format for storage
         const examConfigs = Object.entries(config).map(([examType, marks]) => ({
             examType,
             maxMarksWritten: marks.maxMarksWritten || 80,
@@ -67,7 +85,24 @@ router.post('/config', auth, async (req, res) => {
             }
         );
 
-        res.json(examConfig);
+        // Convert back to object format for response
+        const objectConfig = {
+            pt1: { maxMarksWritten: 80, maxMarksOral: 20 },
+            hy: { maxMarksWritten: 80, maxMarksOral: 20 },
+            pt2: { maxMarksWritten: 80, maxMarksOral: 20 },
+            final: { maxMarksWritten: 80, maxMarksOral: 20 }
+        };
+
+        if (examConfig.examConfigs) {
+            examConfig.examConfigs.forEach(examCfg => {
+                objectConfig[examCfg.examType] = {
+                    maxMarksWritten: examCfg.maxMarksWritten,
+                    maxMarksOral: examCfg.maxMarksOral
+                };
+            });
+        }
+
+        res.json(objectConfig);
     } catch (error) {
         console.error('Error saving exam config:', error);
         res.status(500).json({ message: error.message });
